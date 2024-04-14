@@ -1,0 +1,91 @@
+﻿@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Leaflet Map</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 400px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+    <button onclick="saveMarker()">Konumu Kaydet</button>
+    <div id="sidebar" style="float: right; width: 300px;">
+        <h2>Kaydedilen Konumlar</h2>
+        <ul id="markerList"></ul>
+        <a id="downloadLink" href="#" download="markers.json">Konumları İndir</a>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        var map = L.map('map').setView([51.505, -0.09], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        var markers = JSON.parse(localStorage.getItem('markers')) || [];
+
+        markers.forEach(function (marker) {
+            L.marker([marker.lat, marker.lng]).addTo(map);
+        });
+
+        function addMarker(latlng) {
+            var marker = L.marker(latlng).addTo(map);
+            markers.push({ lat: latlng.lat, lng: latlng.lng, datetime: new Date().toISOString() });
+            updateSidebar();
+            updateLocalStorage();
+        }
+
+        function updateSidebar() {
+            $('#markerList').empty();
+            markers.forEach(function (marker, index) {
+                $('#markerList').append(`<li><a href="#" onclick="showMarker(${index})">${marker.lat}, ${marker.lng}</a></li>`);
+            });
+            updateDownloadLink();
+        }
+
+        function showMarker(index) {
+            var marker = markers[index];
+            if (marker) {
+                L.marker([marker.lat, marker.lng]).addTo(map);
+                map.setView([marker.lat, marker.lng], 13);
+            }
+        }
+
+        function saveMarker() {
+            var center = map.getCenter();
+            addMarker(center);
+        }
+
+        function updateDownloadLink() {
+            var json = JSON.stringify(markers);
+            var blob = new Blob([json], { type: "application/json" });
+            var url = URL.createObjectURL(blob);
+            $('#downloadLink').attr('href', url);
+        }
+
+        function updateLocalStorage() {
+            localStorage.setItem('markers', JSON.stringify(markers));
+        }
+
+        map.on('move', function () {
+            map.on('moveend', function (e) {
+                var center = map.getCenter();
+                console.log(center);
+            });
+        });
+    </script>
+
+</body>
+</html>
